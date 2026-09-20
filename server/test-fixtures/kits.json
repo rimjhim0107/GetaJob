@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-09-20T14:31:53.575Z",
+  "kits": [
+    {
+      "id": "case-01",
+      "status": "ok",
+      "kit": {
+        "source": {
+          "company": "Unknown",
+          "company_url": "https://example.com",
+          "role": "Unknown",
+          "location": "",
+          "jd_chars": 171,
+          "researched_at": "2026-09-20T14:31:53.567Z",
+          "pages_used": []
+        },
+        "company_brief": {
+          "summary": "",
+          "what_they_do": "",
+          "sources": []
+        },
+        "role": {
+          "title": "",
+          "seniority": "",
+          "responsibilities": [],
+          "requirements": []
+        },
+        "questions": [],
+        "flashcards": [],
+        "schedule": {
+          "days_available": 5,
+          "days": []
+        },
+        "coverage": {
+          "uncovered_requirement_ids": [],
+          "passes": 0
+        }
+      },
+      "error": null
+    },
+    {
+      "id": "case-02",
+      "status": "ok",
+      "kit": {
+        "source": {
+          "company": "Unknown",
+          "company_url": "https://nonexistent-company-xyz123.com",
+          "role": "Unknown",
+          "location": "",
+          "jd_chars": 35,
+          "researched_at": "2026-09-20T14:31:53.575Z",
+          "pages_used": []
+        },
+        "company_brief": {
+          "summary": "",
+          "what_they_do": "",
+          "sources": []
+        },
+        "role": {
+          "title": "",
+          "seniority": "",
+          "responsibilities": [],
+          "requirements": []
+        },
+        "questions": [],
+        "flashcards": [],
+        "schedule": {
+          "days_available": 3,
+          "days": []
+        },
+        "coverage": {
+          "uncovered_requirement_ids": [],
+          "passes": 0
+        }
+      },
+      "error": null
+    }
+  ]
+}
