@@ -12,12 +12,14 @@ const GeneratedQuestionSchema = z.object({
 const GeneratedQuestionsSchema = z.array(GeneratedQuestionSchema);
 
 function buildPrompt(requirement: Requirement): string {
-  return `Generate 2 interview questions for this requirement from a job description.
+  return `Generate 4 interview questions for this requirement from a job description.
 
 Requirement: "${requirement.text}"
 Requirement type: ${requirement.kind}
 
 Rules:
+- Generate a mix of categories where relevant: "technical", "behavioural", "system-design", "company-fit"
+- Vary the difficulty across the 4 questions (mix of 1, 2, and 3)
 - category must be one of: "technical", "behavioural", "system-design", "company-fit"
 - difficulty must be an integer 1-3
 - Respond with ONLY a JSON array, no other text, in this exact shape:
