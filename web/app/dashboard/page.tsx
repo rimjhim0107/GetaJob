@@ -37,6 +37,10 @@ export default function DashboardPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (days < 1 || days > 60) {
+    setError("Days must be between 1 and 60");
+    return;
+  }
     setCreating(true);
     try {
       await apiFetch("/kits", {
@@ -88,7 +92,10 @@ export default function DashboardPage() {
             min={1}
             max={60}
             value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
+            onChange={(e) => {
+  const val = e.target.value.replace(/^0+(?=\d)/, "");
+  setDays(val === "" ? 0 : Number(val));
+}}
             required
           />
         </div>
