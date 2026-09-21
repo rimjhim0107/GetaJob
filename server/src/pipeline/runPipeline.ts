@@ -31,9 +31,12 @@ export async function runPipeline(input: PipelineInput): Promise<Kit> {
   const requirements = await extractRequirements(jd);
 
   // Step 2: crawl the company site to find a hiring page, if one exists
+    // Step 2: crawl the company site to find a hiring page, if one exists
   let hiringPageContent = "";
+  let companySiteReachable = false;
   try {
     const homepage = await fetchPage(companyUrl);
+    companySiteReachable = true;
     pagesUsed.push(companyUrl);
     const candidates = findHiringPageCandidates(homepage.links);
 
@@ -44,18 +47,20 @@ export async function runPipeline(input: PipelineInput): Promise<Kit> {
     }
   } catch (err) {
     console.warn(`Could not crawl company site: ${err}`);
-    // continue anyway — a missing hiring page is not a failure, per the brief
   }
 
-  // Step 3: search for public discussion of the company's interview process
+  // Step 3: search for public discussion — skip if the company site itself
+  // was unreachable, since that's a strong signal the company/URL isn't real,
+  // and searching would only return irrelevant noise, not genuine discussion.
   const companyName = getCompanyNameFromUrl(companyUrl);
   let discussionSources: string[] = [];
-  try {
-    const discussion = await searchPublicDiscussion(companyName);
-    discussionSources = discussion.map((d) => d.url);
-  } catch (err) {
-    console.warn(`Public discussion search failed: ${err}`);
-    // continue anyway — no discussion found is not a failure, per the brief
+  if (companySiteReachable) {
+    try {
+      const discussion = await searchPublicDiscussion(companyName);
+      discussionSources = discussion.map((d) => d.url);
+    } catch (err) {
+      console.warn(`Public discussion search failed: ${err}`);
+    }
   }
 
   // Step 4: generate questions per requirement (first pass)

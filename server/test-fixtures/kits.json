@@ -1,40 +1,170 @@
 {
   "version": "1.0",
-  "generated_at": "2026-09-20T14:31:53.575Z",
+  "generated_at": "2026-09-21T04:24:26.120Z",
   "kits": [
     {
       "id": "case-01",
       "status": "ok",
       "kit": {
         "source": {
-          "company": "Unknown",
+          "company": "example",
           "company_url": "https://example.com",
-          "role": "Unknown",
+          "role": "",
           "location": "",
           "jd_chars": 171,
-          "researched_at": "2026-09-20T14:31:53.567Z",
-          "pages_used": []
+          "researched_at": "2026-09-21T04:24:24.935Z",
+          "pages_used": [
+            "https://example.com"
+          ]
         },
         "company_brief": {
           "summary": "",
           "what_they_do": "",
-          "sources": []
+          "sources": [
+            "https://www.themuse.com/advice/interview-questions-and-answers",
+            "https://www.indeed.com/career-advice/interviewing/top-interview-questions-and-answers",
+            "https://www.bamboohr.com/blog/5-powerful-interview-questions-a2",
+            "https://www.careeronestop.org/JobSearch/Interview/common-interview-questions.aspx",
+            "https://careermobilityoffice.cs.ny.gov/cmo/documents/Sample%20Interview%20Questions.pdf"
+          ]
         },
         "role": {
           "title": "",
           "seniority": "",
           "responsibilities": [],
-          "requirements": []
+          "requirements": [
+            {
+              "id": "r1",
+              "text": "5+ years of Node.js experience",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r2",
+              "text": "mentor junior engineers",
+              "kind": "behavioural",
+              "priority": "must"
+            },
+            {
+              "id": "r3",
+              "text": "own our API infrastructure",
+              "kind": "technical",
+              "priority": "must"
+            }
+          ]
         },
-        "questions": [],
+        "questions": [
+          {
+            "id": "q1",
+            "requirement_ids": [
+              "r1"
+            ],
+            "category": "technical",
+            "prompt": "Describe a complex feature you implemented in Node.js that required handling high concurrency and low latency. What architectural patterns did you use and why?",
+            "answer_outline": "Candidate should discuss event-driven architecture, use of async/await or callbacks, clustering or worker threads, load balancing, caching strategies, and performance monitoring. They should explain trade-offs and how they measured success.",
+            "difficulty": 2
+          },
+          {
+            "id": "q2",
+            "requirement_ids": [
+              "r1"
+            ],
+            "category": "technical",
+            "prompt": "You are tasked with refactoring a legacy Node.js codebase that has grown over 5 years. What steps would you take to ensure the refactor is safe, maintainable, and does not introduce regressions?",
+            "answer_outline": "Candidate should mention code review, automated tests, incremental refactoring, use of TypeScript or linting, dependency management, CI/CD pipelines, and documentation updates. They should explain risk mitigation and rollback strategies.",
+            "difficulty": 2
+          },
+          {
+            "id": "q3",
+            "requirement_ids": [
+              "r2"
+            ],
+            "category": "behavioural",
+            "prompt": "Can you describe a time when you mentored a junior engineer? What approach did you take and what was the outcome?",
+            "answer_outline": "Candidate should discuss setting clear expectations, providing constructive feedback, facilitating learning opportunities, and measuring progress. They should mention specific actions (code reviews, pair programming, knowledge sharing sessions) and highlight positive results such as improved performance, confidence, or project success.",
+            "difficulty": 2
+          },
+          {
+            "id": "q4",
+            "requirement_ids": [
+              "r2"
+            ],
+            "category": "behavioural",
+            "prompt": "How do you handle a situation where a junior engineer is struggling with a task you assigned? What steps do you take to support them?",
+            "answer_outline": "Look for a structured response: identifying the root cause, offering guidance, breaking the task into manageable parts, encouraging questions, and following up. The candidate should emphasize empathy, clear communication, and fostering independence.",
+            "difficulty": 2
+          },
+          {
+            "id": "q5",
+            "requirement_ids": [
+              "r3"
+            ],
+            "category": "technical",
+            "prompt": "What steps would you take to ensure the reliability and scalability of an internal API that serves millions of requests per day?",
+            "answer_outline": "Discuss monitoring, logging, rate limiting, circuit breakers, load balancing, horizontal scaling, caching, versioning, automated testing, CI/CD pipelines, and incident response plans.",
+            "difficulty": 2
+          },
+          {
+            "id": "q6",
+            "requirement_ids": [
+              "r3"
+            ],
+            "category": "technical",
+            "prompt": "How would you design a secure authentication and authorization system for a new API that needs to support both internal services and third‑party clients?",
+            "answer_outline": "Explain token-based auth (JWT/OAuth2), scopes/permissions, API keys, rate limiting, encryption, secure storage of secrets, audit logging, and compliance considerations.",
+            "difficulty": 2
+          }
+        ],
         "flashcards": [],
         "schedule": {
           "days_available": 5,
-          "days": []
+          "days": [
+            {
+              "day": 1,
+              "focus": "technical",
+              "question_ids": [
+                "q1",
+                "q2"
+              ],
+              "minutes": 60
+            },
+            {
+              "day": 2,
+              "focus": "behavioural",
+              "question_ids": [
+                "q3"
+              ],
+              "minutes": 30
+            },
+            {
+              "day": 3,
+              "focus": "behavioural",
+              "question_ids": [
+                "q4"
+              ],
+              "minutes": 30
+            },
+            {
+              "day": 4,
+              "focus": "technical",
+              "question_ids": [
+                "q5"
+              ],
+              "minutes": 30
+            },
+            {
+              "day": 5,
+              "focus": "technical",
+              "question_ids": [
+                "q6"
+              ],
+              "minutes": 30
+            }
+          ]
         },
         "coverage": {
           "uncovered_requirement_ids": [],
-          "passes": 0
+          "passes": 1
         }
       },
       "error": null
@@ -44,12 +174,12 @@
       "status": "ok",
       "kit": {
         "source": {
-          "company": "Unknown",
+          "company": "nonexistent-company-xyz123",
           "company_url": "https://nonexistent-company-xyz123.com",
-          "role": "Unknown",
+          "role": "",
           "location": "",
           "jd_chars": 35,
-          "researched_at": "2026-09-20T14:31:53.575Z",
+          "researched_at": "2026-09-21T04:24:26.119Z",
           "pages_used": []
         },
         "company_brief": {
@@ -61,17 +191,68 @@
           "title": "",
           "seniority": "",
           "responsibilities": [],
-          "requirements": []
+          "requirements": [
+            {
+              "id": "r1",
+              "text": "React required.",
+              "kind": "technical",
+              "priority": "must"
+            }
+          ]
         },
-        "questions": [],
+        "questions": [
+          {
+            "id": "q7",
+            "requirement_ids": [
+              "r1"
+            ],
+            "category": "technical",
+            "prompt": "What are the key differences between React's class components and functional components, and when would you choose one over the other?",
+            "answer_outline": "Explain lifecycle methods vs hooks, state management, performance considerations, and scenarios like legacy code or need for advanced hooks.",
+            "difficulty": 2
+          },
+          {
+            "id": "q8",
+            "requirement_ids": [
+              "r1"
+            ],
+            "category": "technical",
+            "prompt": "How does React's reconciliation algorithm work, and what strategies can you use to optimize rendering performance in a large application?",
+            "answer_outline": "Describe virtual DOM diffing, key usage, memoization, lazy loading, code splitting, and profiling tools.",
+            "difficulty": 3
+          }
+        ],
         "flashcards": [],
         "schedule": {
           "days_available": 3,
-          "days": []
+          "days": [
+            {
+              "day": 1,
+              "focus": "technical",
+              "question_ids": [
+                "q8"
+              ],
+              "minutes": 45
+            },
+            {
+              "day": 2,
+              "focus": "technical",
+              "question_ids": [
+                "q7"
+              ],
+              "minutes": 30
+            },
+            {
+              "day": 3,
+              "focus": "Review",
+              "question_ids": [],
+              "minutes": 0
+            }
+          ]
         },
         "coverage": {
           "uncovered_requirement_ids": [],
-          "passes": 0
+          "passes": 1
         }
       },
       "error": null

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { validateKit } from "../schemas/validateKit";
 import type { Kit } from "../schemas/kit.schema";
+import { runPipeline } from "../pipeline/runPipeline";
 
 interface Case {
   id: string;
@@ -32,31 +33,10 @@ function parseArgs(argv: string[]): { input: string; output: string } {
   };
 }
 
-// TEMPORARY stub — real pipeline gets wired in here later (Step 6)
-function buildStubKit(c: Case): Kit {
-  return {
-    source: {
-      company: "Unknown",
-      company_url: c.company_url,
-      role: "Unknown",
-      location: "",
-      jd_chars: c.jd.length,
-      researched_at: new Date().toISOString(),
-      pages_used: [],
-    },
-    company_brief: { summary: "", what_they_do: "", sources: [] },
-    role: { title: "", seniority: "", responsibilities: [], requirements: [] },
-    questions: [],
-    flashcards: [],
-    schedule: { days_available: c.days, days: [] },
-    coverage: { uncovered_requirement_ids: [], passes: 0 },
-  };
-}
-
 async function processCase(c: Case): Promise<KitResult> {
   try {
-    const stubKit = buildStubKit(c);
-    const validation = validateKit(stubKit);
+    const kit = await runPipeline({ jd: c.jd, companyUrl: c.company_url, days: c.days });
+    const validation = validateKit(kit);  
 
     if (!validation.valid) {
       return {
