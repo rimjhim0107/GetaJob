@@ -12,6 +12,7 @@ import { requireAuth } from "./middleware/requireAuth";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 4000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-in-production";
