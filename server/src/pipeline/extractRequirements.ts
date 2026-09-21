@@ -16,8 +16,7 @@ function buildPrompt(jd: string): string {
 
 Rules:
 - Only include requirements that are explicitly stated in the text below. Do not invent or infer anything not written.
-- Mark a requirement "must" only if the text uses required/mandatory language (e.g. "required", "must have", "X+ years").
-- Mark a requirement "nice" if the text uses optional language (e.g. "nice to have", "bonus points", "preferred").
+- Mark a requirement "nice" only if the text uses optional/bonus language (e.g. "nice to have", "bonus points", "preferred but not required"). Mark everything else "must".
 - kind must be one of: "technical", "behavioural", "domain".
 - Respond with ONLY a JSON array, no other text, in this exact shape:
 [{"text": "...", "kind": "technical", "priority": "must"}]

@@ -23,6 +23,8 @@ export async function callLLM(prompt: string, maxRetries = 3): Promise<string> {
       const response = await client.chat.completions.create({
         model: MODEL,
         messages: [{ role: "user", content: prompt }],
+        temperature: 0,
+        reasoning_effort: "low",
       });
 
       const content = response.choices[0].message.content;
