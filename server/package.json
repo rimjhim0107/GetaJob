@@ -15,6 +15,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@tavily/core": "^0.7.13",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
     "connect-mongo": "^6.0.0",
