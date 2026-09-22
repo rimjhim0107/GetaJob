@@ -12,11 +12,24 @@ interface Question {
   requirement_ids: string[];
 }
 
+interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  requirement_ids: string[];
+}
+
 interface Kit {
   source: { company: string; role: string; company_url: string; pages_used: string[] };
   company_brief: { summary: string; what_they_do: string; sources: string[] };
-  role: { requirements: { id: string; text: string; kind: string; priority: string }[] };
+  role: {
+    title: string;
+    seniority: string;
+    responsibilities: string[];
+    requirements: { id: string; text: string; kind: string; priority: string }[];
+  };
   questions: Question[];
+  flashcards: Flashcard[];
   schedule: { days_available: number; days: { day: number; focus: string; question_ids: string[]; minutes: number }[] };
   coverage: { uncovered_requirement_ids: string[]; passes: number };
 }
@@ -75,8 +88,18 @@ export default function KitDetailPage() {
 
   const kit = kitDoc.data!;
 
-  if (practiceMode) {
-    const q = kit.questions[practiceIndex];
+    if (practiceMode) {
+    const card = kit.flashcards[practiceIndex];
+    if (!card) {
+      return (
+        <div className="max-w-xl mx-auto px-4 py-10 text-center">
+          <button className="text-sm text-slate-400 hover:text-white transition mb-6" onClick={() => setPracticeMode(false)}>
+            ← Back to kit
+          </button>
+          <p className="text-slate-400">No flashcards available for this kit.</p>
+        </div>
+      );
+    }
     return (
       <div className="max-w-xl mx-auto px-4 py-10">
         <button
@@ -85,11 +108,11 @@ export default function KitDetailPage() {
         >
           ← Back to kit
         </button>
-        <p className="text-sm text-slate-500 mb-2">Card {practiceIndex + 1} of {kit.questions.length}</p>
+        <p className="text-sm text-slate-500 mb-2">Card {practiceIndex + 1} of {kit.flashcards.length}</p>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 min-h-[180px] flex flex-col justify-center">
-          <p className="text-white font-medium">{q.prompt}</p>
+          <p className="text-white font-medium">{card.front}</p>
           {revealed && (
-            <p className="text-slate-400 text-sm border-t border-slate-800 pt-4 mt-4">{q.answer_outline}</p>
+            <p className="text-slate-400 text-sm border-t border-slate-800 pt-4 mt-4">{card.back}</p>
           )}
         </div>
         <div className="flex gap-2 mt-4">
@@ -103,7 +126,7 @@ export default function KitDetailPage() {
             className="bg-blue-600 hover:bg-blue-500 transition text-sm text-white px-4 py-2 rounded-lg"
             onClick={() => {
               setRevealed(false);
-              setPracticeIndex((i) => (i + 1) % kit.questions.length);
+              setPracticeIndex((i) => (i + 1) % kit.flashcards.length);
             }}
           >
             Next
@@ -121,7 +144,15 @@ export default function KitDetailPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-semibold text-white capitalize">{kit.source.company}</h1>
-      {kit.source.role && <p className="text-slate-400 mb-6">{kit.source.role}</p>}
+            {kit.source.role && <p className="text-slate-400 mb-6">{kit.source.role}</p>}
+
+      {(kit.company_brief.summary || kit.company_brief.what_they_do) && (
+        <section className="mb-8 bg-slate-900 border border-slate-800 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-300 mb-2 uppercase tracking-wide">Company Brief</h2>
+          {kit.company_brief.summary && <p className="text-sm text-slate-300 mb-2">{kit.company_brief.summary}</p>}
+          {kit.company_brief.what_they_do && <p className="text-sm text-slate-400">{kit.company_brief.what_they_do}</p>}
+        </section>
+      )}
 
       <button
         className="bg-blue-600 hover:bg-blue-500 transition text-white text-sm font-medium px-4 py-2 rounded-lg mb-8"
