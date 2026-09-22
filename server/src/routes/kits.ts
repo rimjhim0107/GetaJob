@@ -142,3 +142,48 @@ kitsRouter.post("/:id/practice", async (req, res) => {
   await kit.save();
   res.json({ practiceProgress: kit.practiceProgress });
 });
+
+// Create multiple kits at once from an uploaded array of { jd, company_url, days }
+kitsRouter.post("/bulk", async (req, res) => {
+  const { cases } = req.body;
+  if (!Array.isArray(cases) || cases.length === 0) {
+    return res.status(400).json({ error: "Provide a non-empty array of cases" });
+  }
+  if (cases.length > 10) {
+    return res.status(400).json({ error: "Maximum 10 kits per bulk upload" });
+  }
+
+  const created = [];
+  for (const c of cases) {
+    if (!c.jd || !c.company_url || !c.days) {
+      continue; // skip malformed entries rather than failing the whole batch
+    }
+
+    const kitDoc = await KitDoc.create({ owner: req.session.userId, status: "generating" });
+    created.push({ id: kitDoc._id, jd: c.jd, companyUrl: c.company_url, days: c.days });
+
+    runPipeline({ jd: c.jd, companyUrl: c.company_url, days: c.days })
+      .then(async (kit) => {
+        const validation = validateKit(kit);
+        const doc = await KitDoc.findById(kitDoc._id);
+        if (!doc) return;
+        if (!validation.valid) {
+          doc.status = "failed";
+          doc.error = validation.errors.join("; ");
+        } else {
+          doc.status = "ready";
+          doc.data = validation.kit;
+        }
+        await doc.save();
+      })
+      .catch(async (err) => {
+        const doc = await KitDoc.findById(kitDoc._id);
+        if (!doc) return;
+        doc.status = "failed";
+        doc.error = err instanceof Error ? err.message : String(err);
+        await doc.save();
+      });
+  }
+
+  res.status(202).json({ created: created.map((c) => c.id) });
+});
