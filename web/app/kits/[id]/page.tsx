@@ -41,6 +41,7 @@ interface KitDoc {
   status: string;
   error?: string;
   data?: Kit;
+  practiceProgress?: Record<string, "low" | "medium" | "high">;
 }
 
 let newIdCounter = 0;
@@ -59,13 +60,16 @@ export default function KitDetailPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [regenerating, setRegenerating] = useState<"questions" | "flashcards" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [practiceMode, setPracticeMode] = useState(false);
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const [practiceProgress, setPracticeProgress] = useState<Record<string, "low" | "medium" | "high">>({});
+  const [practiceQueue, setPracticeQueue] = useState<Flashcard[]>([]);
 
-    async function load() {
+  async function load() {
     const data = await apiFetch(`/kits/${id}`);
     setKitDoc(data);
     if (data.data) {
@@ -74,11 +78,40 @@ export default function KitDetailPage() {
       setSavedQuestions(data.data.questions || []);
       setSavedFlashcards(data.data.flashcards || []);
     }
+    setPracticeProgress(data.practiceProgress || {});
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  function startPractice() {
+    const confidenceRank = { low: 0, medium: 1, high: 2 };
+    const queue = [...flashcards].sort((a, b) => {
+      const aConf = practiceProgress[a.id];
+      const bConf = practiceProgress[b.id];
+      // uncovered cards (no rating yet) come first, then sorted least-to-most confident
+      const aRank = aConf ? confidenceRank[aConf] : -1;
+      const bRank = bConf ? confidenceRank[bConf] : -1;
+      return aRank - bRank;
+    });
+    setPracticeQueue(queue);
+    setPracticeIndex(0);
+    setRevealed(false);
+    setPracticeMode(true);
+  }
+
+  async function rateConfidence(flashcardId: string, confidence: "low" | "medium" | "high") {
+    setPracticeProgress((prev) => ({ ...prev, [flashcardId]: confidence }));
+    try {
+      await apiFetch(`/kits/${id}/practice`, {
+        method: "POST",
+        body: JSON.stringify({ flashcardId, confidence }),
+      });
+    } catch {
+      // non-critical — local state already updated, will resync on next load
+    }
+  }
 
   useEffect(() => {
     if (kitDoc?.status !== "generating" && kitDoc?.status !== "pending") return;
@@ -103,6 +136,29 @@ export default function KitDetailPage() {
       setSaveError(err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function regenerateSection(section: "questions" | "flashcards") {
+    if (dirty) {
+      setSaveError("Save or revert your current changes before regenerating.");
+      return;
+    }
+    setRegenerating(section);
+    try {
+      const updated = await apiFetch(`/kits/${id}/regenerate`, {
+        method: "POST",
+        body: JSON.stringify({ section }),
+      });
+      setKitDoc(updated);
+      setQuestions(updated.data.questions || []);
+      setFlashcards(updated.data.flashcards || []);
+      setSavedQuestions(updated.data.questions || []);
+      setSavedFlashcards(updated.data.flashcards || []);
+    } catch (err: any) {
+      setSaveError(err.message);
+    } finally {
+      setRegenerating(null);
     }
   }
 
@@ -203,8 +259,10 @@ export default function KitDetailPage() {
 
   const kit = kitDoc.data!;
 
-  if (practiceMode) {
-    const card = flashcards[practiceIndex];
+    if (practiceMode) {
+    const card = practiceQueue[practiceIndex];
+    const coveredCount = Object.keys(practiceProgress).filter((pid) => flashcards.some((f) => f.id === pid)).length;
+
     if (!card) {
       return (
         <div className="max-w-xl mx-auto px-4 py-10 text-center">
@@ -215,33 +273,56 @@ export default function KitDetailPage() {
         </div>
       );
     }
+
     return (
       <div className="max-w-xl mx-auto px-4 py-10">
         <button className="text-sm text-slate-400 hover:text-white transition mb-6" onClick={() => setPracticeMode(false)}>
           ← Back to kit
         </button>
-        <p className="text-sm text-slate-500 mb-2">Card {practiceIndex + 1} of {flashcards.length}</p>
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-sm text-slate-500">Card {practiceIndex + 1} of {practiceQueue.length}</p>
+          <p className="text-sm text-slate-500">{coveredCount} of {flashcards.length} covered</p>
+        </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 min-h-[180px] flex flex-col justify-center">
           <p className="text-white font-medium">{card.front}</p>
           {revealed && <p className="text-slate-400 text-sm border-t border-slate-800 pt-4 mt-4">{card.back}</p>}
         </div>
-        <div className="flex gap-2 mt-4">
+
+        {!revealed ? (
           <button
-            className="border border-slate-700 hover:border-slate-600 transition text-sm text-white px-4 py-2 rounded-lg"
-            onClick={() => setRevealed(!revealed)}
+            className="border border-slate-700 hover:border-slate-600 transition text-sm text-white px-4 py-2 rounded-lg mt-4"
+            onClick={() => setRevealed(true)}
           >
-            {revealed ? "Hide answer" : "Reveal answer"}
+            Reveal answer
           </button>
-          <button
-            className="bg-blue-600 hover:bg-blue-500 transition text-sm text-white px-4 py-2 rounded-lg"
-            onClick={() => {
-              setRevealed(false);
-              setPracticeIndex((i) => (i + 1) % flashcards.length);
-            }}
-          >
-            Next
-          </button>
-        </div>
+        ) : (
+          <div className="mt-4">
+            <p className="text-xs text-slate-500 mb-2">How confident did you feel?</p>
+            <div className="flex gap-2">
+              {(["low", "medium", "high"] as const).map((level) => (
+                <button
+                  key={level}
+                  className={`text-sm px-4 py-2 rounded-lg transition ${
+                    level === "low" ? "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20" :
+                    level === "medium" ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20" :
+                    "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20"
+                  }`}
+                  onClick={() => {
+                    rateConfidence(card.id, level);
+                    setRevealed(false);
+                    if (practiceIndex + 1 < practiceQueue.length) {
+                      setPracticeIndex((i) => i + 1);
+                    } else {
+                      setPracticeMode(false);
+                    }
+                  }}
+                >
+                  {level === "low" ? "Not confident" : level === "medium" ? "Somewhat" : "Confident"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -272,11 +353,16 @@ export default function KitDetailPage() {
 
       <button
         className="bg-blue-600 hover:bg-blue-500 transition text-white text-sm font-medium px-4 py-2 rounded-lg mb-8"
-        onClick={() => { setPracticeMode(true); setPracticeIndex(0); setRevealed(false); }}
+        onClick={startPractice}
       >
         Practice with flashcards
       </button>
 
+      {flashcards.length > 0 && (
+        <p className="text-xs text-slate-500 -mt-6 mb-8">
+          {Object.keys(practiceProgress).filter((id) => flashcards.some((f) => f.id === id)).length} of {flashcards.length} covered
+        </p>
+      )}
       <section className="mb-8">
         <h2 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wide">Requirements</h2>
         <div className="flex flex-col gap-2">
@@ -292,7 +378,16 @@ export default function KitDetailPage() {
       <section className="mb-8">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Questions</h2>
-          <button onClick={addQuestion} className="text-xs text-blue-400 hover:text-blue-300 transition">+ Add question</button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => regenerateSection("questions")}
+              disabled={regenerating !== null}
+              className="text-xs text-slate-400 hover:text-white transition disabled:opacity-50"
+            >
+              {regenerating === "questions" ? "Regenerating..." : "↻ Regenerate"}
+            </button>
+            <button onClick={addQuestion} className="text-xs text-blue-400 hover:text-blue-300 transition">+ Add question</button>
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           {questions.map((q, i) => (
@@ -335,7 +430,16 @@ export default function KitDetailPage() {
       <section className="mb-8">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Flashcards</h2>
-          <button onClick={addFlashcard} className="text-xs text-blue-400 hover:text-blue-300 transition">+ Add flashcard</button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => regenerateSection("flashcards")}
+              disabled={regenerating !== null}
+              className="text-xs text-slate-400 hover:text-white transition disabled:opacity-50"
+            >
+              {regenerating === "flashcards" ? "Regenerating..." : "↻ Regenerate"}
+            </button>
+            <button onClick={addFlashcard} className="text-xs text-blue-400 hover:text-blue-300 transition">+ Add flashcard</button>
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           {flashcards.map((f) => (
