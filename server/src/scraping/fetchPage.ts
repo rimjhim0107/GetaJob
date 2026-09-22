@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import robotsParser from "robots-parser";
 
 export interface PageLink {
   text: string;
@@ -11,7 +12,26 @@ export interface FetchedPage {
   links: PageLink[];
 }
 
+async function isAllowedByRobots(url: string): Promise<boolean> {
+  try {
+    const { origin } = new URL(url);
+    const robotsUrl = `${origin}/robots.txt`;
+    const response = await fetch(robotsUrl, { headers: { "User-Agent": "GetaJob-Bot/1.0" } });
+    if (!response.ok) return true; // no robots.txt or inaccessible — assume allowed
+    const body = await response.text();
+    const robots = robotsParser(robotsUrl, body);
+    return robots.isAllowed(url, "GetaJob-Bot/1.0") ?? true;
+  } catch {
+    return true; // if robots.txt itself can't be fetched, don't block the crawl over it
+  }
+}
+
 export async function fetchPage(url: string): Promise<FetchedPage> {
+  const allowed = await isAllowedByRobots(url);
+  if (!allowed) {
+    throw new Error(`Crawling disallowed by robots.txt: ${url}`);
+  }
+
   const response = await fetch(url, {
     headers: { "User-Agent": "GetaJob-Bot/1.0" },
   });
