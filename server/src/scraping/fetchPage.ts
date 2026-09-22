@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import robotsParser from "robots-parser";
+import { isUrlSafeToFetch } from "./validateUrl";
 
 export interface PageLink {
   text: string;
@@ -27,6 +28,11 @@ async function isAllowedByRobots(url: string): Promise<boolean> {
 }
 
 export async function fetchPage(url: string): Promise<FetchedPage> {
+  const urlCheck = isUrlSafeToFetch(url);
+  if (!urlCheck.safe) {
+    throw new Error(`URL rejected: ${urlCheck.reason}`);
+  }
+
   const allowed = await isAllowedByRobots(url);
   if (!allowed) {
     throw new Error(`Crawling disallowed by robots.txt: ${url}`);
