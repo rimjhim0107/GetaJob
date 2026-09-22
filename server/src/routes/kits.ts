@@ -53,3 +53,32 @@ kitsRouter.get("/:id", async (req, res) => {
   }
   res.json(kit);
 });
+
+// Update a kit's content (edits, reorders, additions, deletions)
+kitsRouter.patch("/:id", async (req, res) => {
+  const kit = await KitDoc.findOne({ _id: req.params.id, owner: req.session.userId });
+  if (!kit) {
+    return res.status(404).json({ error: "Kit not found" });
+  }
+  if (kit.status !== "ready") {
+    return res.status(400).json({ error: "Kit is not ready to be edited" });
+  }
+
+  const { questions, flashcards } = req.body;
+  if (!Array.isArray(questions) && !Array.isArray(flashcards)) {
+    return res.status(400).json({ error: "Provide questions and/or flashcards arrays to update" });
+  }
+
+  const updatedData = { ...kit.data };
+  if (Array.isArray(questions)) updatedData.questions = questions;
+  if (Array.isArray(flashcards)) updatedData.flashcards = flashcards;
+
+  const validation = validateKit(updatedData);
+  if (!validation.valid) {
+    return res.status(400).json({ error: "Updated kit failed validation", details: validation.errors });
+  }
+
+  kit.data = validation.kit;
+  await kit.save();
+  res.json(kit);
+});
