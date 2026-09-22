@@ -2,6 +2,8 @@ import { Router } from "express";
 import { KitDoc } from "../models/Kit";
 import { runPipeline } from "../pipeline/runPipeline";
 import { validateKit } from "../schemas/validateKit";
+import { generateQuestionsForRequirement } from "../pipeline/generateQuestions";
+import { generateFlashcardsForRequirement } from "../pipeline/generateFlashcards";
 
 export const kitsRouter = Router();
 
@@ -81,4 +83,45 @@ kitsRouter.patch("/:id", async (req, res) => {
   kit.data = validation.kit;
   await kit.save();
   res.json(kit);
+});
+
+// Regenerate one section (questions or flashcards) without touching edited/user_added items
+kitsRouter.post("/:id/regenerate", async (req, res) => {
+  const kit = await KitDoc.findOne({ _id: req.params.id, owner: req.session.userId });
+  if (!kit) {
+    return res.status(404).json({ error: "Kit not found" });
+  }
+  if (kit.status !== "ready" || !kit.data) {
+    return res.status(400).json({ error: "Kit is not ready" });
+  }
+
+  const { section } = req.body; // "questions" | "flashcards"
+  if (section !== "questions" && section !== "flashcards") {
+    return res.status(400).json({ error: "section must be 'questions' or 'flashcards'" });
+  }
+
+  try {
+    const requirements = kit.data.role.requirements;
+    const preserved = kit.data[section].filter((item: any) => item.state !== "generated");
+
+    let freshItems: any[] = [];
+    for (const req of requirements) {
+      const generated = section === "questions"
+        ? await generateQuestionsForRequirement(req)
+        : await generateFlashcardsForRequirement(req);
+      freshItems.push(...generated);
+    }
+
+    const updatedData = { ...kit.data, [section]: [...preserved, ...freshItems] };
+    const validation = validateKit(updatedData);
+    if (!validation.valid) {
+      return res.status(400).json({ error: "Regenerated kit failed validation", details: validation.errors });
+    }
+
+    kit.data = validation.kit;
+    await kit.save();
+    res.json(kit);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : "Regeneration failed" });
+  }
 });
