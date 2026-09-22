@@ -125,3 +125,20 @@ kitsRouter.post("/:id/regenerate", async (req, res) => {
     res.status(500).json({ error: err instanceof Error ? err.message : "Regeneration failed" });
   }
 });
+
+// Record confidence for a flashcard in practice mode
+kitsRouter.post("/:id/practice", async (req, res) => {
+  const kit = await KitDoc.findOne({ _id: req.params.id, owner: req.session.userId });
+  if (!kit) {
+    return res.status(404).json({ error: "Kit not found" });
+  }
+
+  const { flashcardId, confidence } = req.body;
+  if (!flashcardId || !["low", "medium", "high"].includes(confidence)) {
+    return res.status(400).json({ error: "flashcardId and confidence ('low'|'medium'|'high') required" });
+  }
+
+  kit.practiceProgress = { ...(kit.practiceProgress || {}), [flashcardId]: confidence };
+  await kit.save();
+  res.json({ practiceProgress: kit.practiceProgress });
+});
