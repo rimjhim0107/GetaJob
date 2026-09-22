@@ -26,7 +26,9 @@ Rules:
 [{"prompt": "...", "answer_outline": "...", "difficulty": 2, "category": "technical"}]`;
 }
 
-let questionCounter = 0;
+function generateQuestionId(): string {
+  return `q_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export async function generateQuestionsForRequirement(
   requirement: Requirement
@@ -46,9 +48,8 @@ export async function generateQuestionsForRequirement(
   }
 
     return result.data.map((q) => {
-    questionCounter++;
     return {
-      id: `q${questionCounter}`,
+      id: generateQuestionId(),
       requirement_ids: [requirement.id],
       state: "generated" as const,
       ...q,

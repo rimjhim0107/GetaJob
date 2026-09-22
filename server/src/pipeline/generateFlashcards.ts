@@ -8,7 +8,10 @@ const FlashcardItemSchema = z.object({
 });
 const FlashcardItemsSchema = z.array(FlashcardItemSchema);
 
-let flashcardCounter = 0;
+function generateFlashcardId(): string {
+  return `f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 
 export async function generateFlashcardsForRequirement(requirement: Requirement): Promise<Flashcard[]> {
   const prompt = `Generate 2 flashcards (front/back) for quick review of this interview topic.
@@ -25,9 +28,8 @@ Rules:
     const parsed = JSON.parse(raw);
     const result = FlashcardItemsSchema.safeParse(parsed);
     if (result.success) {
-            return result.data.map((f) => {
-        flashcardCounter++;
-        return { id: `f${flashcardCounter}`, front: f.front, back: f.back, requirement_ids: [requirement.id], state: "generated" as const };
+      return result.data.map((f) => {
+        return { id: generateFlashcardId(), front: f.front, back: f.back, requirement_ids: [requirement.id], state: "generated" as const };
       });
     }
   } catch {
