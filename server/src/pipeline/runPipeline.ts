@@ -5,7 +5,10 @@ import { findHiringPageCandidates } from "../scraping/findHiringPage";
 import { searchPublicDiscussion } from "../scraping/searchPublicDiscussion";
 import { checkCoverage } from "../scheduling/checkCoverage";
 import { buildSchedule } from "../scheduling/buildSchedule";
-import type { Kit, Question } from "../schemas/kit.schema";
+import { generateCompanyBrief } from "./generateCompanyBrief";
+import { extractRoleInfo } from "./extractRoleInfo";
+import { generateFlashcardsForRequirement } from "./generateFlashcards";
+import type { Flashcard, Kit, Question } from "../schemas/kit.schema";
 
 interface PipelineInput {
   jd: string;
@@ -28,7 +31,9 @@ export async function runPipeline(input: PipelineInput): Promise<Kit> {
   const pagesUsed: string[] = [];
 
   // Step 1: extract requirements from the pasted JD — no dependency on anything else
+    // Step 1: extract requirements and role info from the pasted JD — no dependency on anything else
   const requirements = await extractRequirements(jd);
+  const roleInfo = await extractRoleInfo(jd);
 
   // Step 2: crawl the company site to find a hiring page, if one exists
     // Step 2: crawl the company site to find a hiring page, if one exists
@@ -52,22 +57,31 @@ export async function runPipeline(input: PipelineInput): Promise<Kit> {
   // Step 3: search for public discussion — skip if the company site itself
   // was unreachable, since that's a strong signal the company/URL isn't real,
   // and searching would only return irrelevant noise, not genuine discussion.
-  const companyName = getCompanyNameFromUrl(companyUrl);
+    const companyName = getCompanyNameFromUrl(companyUrl);
   let discussionSources: string[] = [];
+  let discussionSnippets: string[] = [];
   if (companySiteReachable) {
     try {
       const discussion = await searchPublicDiscussion(companyName);
       discussionSources = discussion.map((d) => d.url);
+      discussionSnippets = discussion.map((d) => d.snippet);
     } catch (err) {
       console.warn(`Public discussion search failed: ${err}`);
     }
   }
 
+  // Step 3b: generate the company brief from whatever we found
+  const companyBrief = await generateCompanyBrief(companyName, hiringPageContent, discussionSnippets);
+
   // Step 4: generate questions per requirement (first pass)
+    // Step 4: generate questions and flashcards per requirement (first pass)
   let questions: Question[] = [];
+  let flashcards: Flashcard[] = [];
   for (const req of requirements) {
-    const generated = await generateQuestionsForRequirement(req);
-    questions.push(...generated);
+    const generatedQuestions = await generateQuestionsForRequirement(req);
+    questions.push(...generatedQuestions);
+    const generatedFlashcards = await generateFlashcardsForRequirement(req);
+    flashcards.push(...generatedFlashcards);
   }
 
   // Step 5: check coverage, generate missing questions for gaps (second pass)
@@ -90,29 +104,29 @@ export async function runPipeline(input: PipelineInput): Promise<Kit> {
   // Step 6: build the schedule — deterministic, runs last
   const scheduleDays = buildSchedule(requirements, questions, days);
 
-  return {
+    return {
     source: {
       company: companyName,
       company_url: companyUrl,
-      role: "",
+      role: roleInfo.title,
       location: "",
       jd_chars: jd.length,
       researched_at: new Date().toISOString(),
       pages_used: pagesUsed,
     },
     company_brief: {
-      summary: "",
-      what_they_do: "",
+      summary: companyBrief.summary,
+      what_they_do: companyBrief.what_they_do,
       sources: discussionSources,
     },
     role: {
-      title: "",
-      seniority: "",
-      responsibilities: [],
+      title: roleInfo.title,
+      seniority: roleInfo.seniority,
+      responsibilities: roleInfo.responsibilities,
       requirements,
     },
     questions,
-    flashcards: [],
+    flashcards,
     schedule: {
       days_available: days,
       days: scheduleDays,
