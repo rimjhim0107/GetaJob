@@ -20,6 +20,7 @@ const question = (
   prompt: "some question",
   answer_outline: "",
   difficulty,
+  state: "generated",
 });
 
 describe("buildSchedule", () => {

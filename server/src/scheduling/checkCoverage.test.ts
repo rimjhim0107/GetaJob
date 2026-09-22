@@ -16,6 +16,7 @@ const question = (id: string, requirement_ids: string[]): Question => ({
   prompt: "some question",
   answer_outline: "",
   difficulty: 1,
+  state: "generated",
 });
 
 describe("checkCoverage", () => {

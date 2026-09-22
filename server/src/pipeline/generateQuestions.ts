@@ -45,11 +45,12 @@ export async function generateQuestionsForRequirement(
     throw new Error(`LLM questions did not match expected shape: ${result.error.message}`);
   }
 
-  return result.data.map((q) => {
+    return result.data.map((q) => {
     questionCounter++;
     return {
       id: `q${questionCounter}`,
       requirement_ids: [requirement.id],
+      state: "generated" as const,
       ...q,
     };
   });

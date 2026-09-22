@@ -25,9 +25,9 @@ Rules:
     const parsed = JSON.parse(raw);
     const result = FlashcardItemsSchema.safeParse(parsed);
     if (result.success) {
-      return result.data.map((f) => {
+            return result.data.map((f) => {
         flashcardCounter++;
-        return { id: `f${flashcardCounter}`, front: f.front, back: f.back, requirement_ids: [requirement.id] };
+        return { id: `f${flashcardCounter}`, front: f.front, back: f.back, requirement_ids: [requirement.id], state: "generated" as const };
       });
     }
   } catch {

@@ -41,6 +41,8 @@ export const RoleSchema = z.object({
   requirements: z.array(RequirementSchema),
 });
 
+export const ItemState = z.enum(["generated", "edited", "user_added"]);
+
 export const QuestionSchema = z.object({
   id: z.string(),
   requirement_ids: z.array(z.string()),
@@ -48,6 +50,7 @@ export const QuestionSchema = z.object({
   prompt: z.string(),
   answer_outline: z.string(),
   difficulty: z.number().int().min(1).max(3),
+  state: ItemState.default("generated"),
 });
 
 export const FlashcardSchema = z.object({
@@ -55,6 +58,7 @@ export const FlashcardSchema = z.object({
   front: z.string(),
   back: z.string(),
   requirement_ids: z.array(z.string()),
+  state: ItemState.default("generated"),
 });
 
 export const ScheduleDaySchema = z.object({
