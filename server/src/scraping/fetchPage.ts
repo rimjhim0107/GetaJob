@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import robotsParser from "robots-parser";
 import { isUrlSafeToFetch } from "./validateUrl";
+import { withRetry } from "./retryFetch";
 
 export interface PageLink {
   text: string;
@@ -38,15 +39,33 @@ export async function fetchPage(url: string): Promise<FetchedPage> {
     throw new Error(`Crawling disallowed by robots.txt: ${url}`);
   }
 
-  const response = await fetch(url, {
-    headers: { "User-Agent": "GetaJob-Bot/1.0" },
+    const html = await withRetry(async () => {
+    const response = await fetch(url, {
+      headers: { "User-Agent": "GetaJob-Bot/1.0" },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html") && !contentType.includes("text/plain")) {
+      throw new Error(`Unexpected content type, refusing to process: ${contentType}`);
+    }
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength && Number(contentLength) > 5_000_000) {
+      throw new Error("Page too large to process (over 5MB)");
+    }
+
+    const text = await response.text();
+    if (text.length > 5_000_000) {
+      throw new Error("Page too large to process (over 5MB)");
+    }
+
+    return text;
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: HTTP ${response.status}`);
-  }
-
-  const html = await response.text();
+  
   const $ = cheerio.load(html);
 
   const links: PageLink[] = [];

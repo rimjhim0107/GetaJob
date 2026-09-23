@@ -1,5 +1,6 @@
 import { tavily } from "@tavily/core";
 import dotenv from "dotenv";
+import { withRetry } from "./retryFetch";
 
 dotenv.config();
 
@@ -12,9 +13,9 @@ export interface SearchResult {
 }
 
 export async function searchPublicDiscussion(company: string): Promise<SearchResult[]> {
-  const response = await client.search(`${company} interview process questions`, {
-    maxResults: 5,
-  });
+  const response = await withRetry(() =>
+    client.search(`${company} interview process questions`, { maxResults: 5 })
+  );
 
   return response.results.map((r) => ({
     title: r.title,

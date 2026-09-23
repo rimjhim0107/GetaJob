@@ -6,6 +6,7 @@ const KitDocSchema = new mongoose.Schema({
   error: { type: String, default: null },
   data: { type: mongoose.Schema.Types.Mixed, default: null },
   practiceProgress: { type: mongoose.Schema.Types.Mixed, default: {} }, // { [flashcardId]: "low" | "medium" | "high" }
+  jdHash: { type: String, index: true },
 }, { timestamps: true });
 
 export const KitDoc = mongoose.model("KitDoc", KitDocSchema);

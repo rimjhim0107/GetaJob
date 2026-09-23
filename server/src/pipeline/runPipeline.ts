@@ -9,6 +9,7 @@ import { generateCompanyBrief } from "./generateCompanyBrief";
 import { extractRoleInfo } from "./extractRoleInfo";
 import { generateFlashcardsForRequirement } from "./generateFlashcards";
 import type { Flashcard, Kit, Question } from "../schemas/kit.schema";
+import { cleanHtml } from "../scraping/cleanHTML"
 
 interface PipelineInput {
   jd: string;
@@ -48,7 +49,7 @@ export async function runPipeline(input: PipelineInput): Promise<Kit> {
     if (candidates.length > 0) {
       const hiringPage = await fetchPage(candidates[0].url);
       pagesUsed.push(candidates[0].url);
-      hiringPageContent = hiringPage.html;
+      hiringPageContent = cleanHtml(hiringPage.html);
     }
   } catch (err) {
     console.warn(`Could not crawl company site: ${err}`);

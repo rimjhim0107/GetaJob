@@ -4,6 +4,13 @@ import { runPipeline } from "../pipeline/runPipeline";
 import { validateKit } from "../schemas/validateKit";
 import { generateQuestionsForRequirement } from "../pipeline/generateQuestions";
 import { generateFlashcardsForRequirement } from "../pipeline/generateFlashcards";
+import crypto from "crypto";
+import { buildSchedule } from "../scheduling/buildSchedule";
+import { generateCompanyBrief } from "../pipeline/generateCompanyBrief";
+
+function hashCase(jd: string, companyUrl: string): string {
+  return crypto.createHash("sha256").update(`${jd}|${companyUrl}`).digest("hex");
+}
 
 export const kitsRouter = Router();
 
@@ -14,9 +21,16 @@ kitsRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "jd, companyUrl, and days are required" });
   }
 
+  const jdHash = hashCase(jd, companyUrl);
+  const existing = await KitDoc.findOne({ owner: req.session.userId, jdHash, status: "ready" });
+  if (existing) {
+    return res.status(200).json({ id: existing._id, status: existing.status, duplicate: true });
+  }
+
   const kitDoc = await KitDoc.create({
     owner: req.session.userId,
     status: "generating",
+    jdHash,
   });
 
   // fire and forget — don't block the HTTP response on the LLM pipeline
@@ -88,37 +102,49 @@ kitsRouter.patch("/:id", async (req, res) => {
 // Regenerate one section (questions or flashcards) without touching edited/user_added items
 kitsRouter.post("/:id/regenerate", async (req, res) => {
   const kit = await KitDoc.findOne({ _id: req.params.id, owner: req.session.userId });
-  if (!kit) {
-    return res.status(404).json({ error: "Kit not found" });
-  }
-  if (kit.status !== "ready" || !kit.data) {
-    return res.status(400).json({ error: "Kit is not ready" });
-  }
+  if (!kit) return res.status(404).json({ error: "Kit not found" });
+  if (kit.status !== "ready" || !kit.data) return res.status(400).json({ error: "Kit is not ready" });
 
-  const { section } = req.body; // "questions" | "flashcards"
-  if (section !== "questions" && section !== "flashcards") {
-    return res.status(400).json({ error: "section must be 'questions' or 'flashcards'" });
-  }
+  const { section, category } = req.body; // "questions" | "flashcards" | "brief" | "schedule"
 
   try {
     const requirements = kit.data.role.requirements;
-    const preserved = kit.data[section].filter((item: any) => item.state !== "generated");
 
-    let freshItems: any[] = [];
-    for (const req of requirements) {
-      const generated = section === "questions"
-        ? await generateQuestionsForRequirement(req)
-        : await generateFlashcardsForRequirement(req);
-      freshItems.push(...generated);
+    if (section === "questions" || section === "flashcards") {
+      const items = kit.data[section] || [];
+      const preserved = items.filter(
+        (item: any) => item.state !== "generated" || (category && item.category !== category)
+      );
+      let freshItems: any[] = [];
+      for (const req of requirements) {
+        const generated = section === "questions"
+          ? await generateQuestionsForRequirement(req)
+          : await generateFlashcardsForRequirement(req);
+        freshItems.push(...(category ? generated.filter((g: any) => g.category === category) : generated));
+      }
+      const updatedData = { ...kit.data, [section]: [...preserved, ...freshItems] };
+      const validation = validateKit(updatedData);
+      if (!validation.valid) return res.status(400).json({ error: "Regenerated kit failed validation", details: validation.errors });
+      kit.data = validation.kit;
+    } else if (section === "brief") {
+      // Note: original crawled page content isn't stored, so this regenerates
+      // from the company name and previously-found source URLs only — a known
+      // simplification, documented in the README.
+      const brief = await generateCompanyBrief(kit.data.source.company, "", []);
+      const updatedData = { ...kit.data, company_brief: { ...kit.data.company_brief, ...brief } };
+      const validation = validateKit(updatedData);
+      if (!validation.valid) return res.status(400).json({ error: "Regenerated kit failed validation", details: validation.errors });
+      kit.data = validation.kit;
+    } else if (section === "schedule") {
+      const scheduleDays = buildSchedule(requirements, kit.data.questions, kit.data.schedule.days_available);
+      const updatedData = { ...kit.data, schedule: { ...kit.data.schedule, days: scheduleDays } };
+      const validation = validateKit(updatedData);
+      if (!validation.valid) return res.status(400).json({ error: "Regenerated kit failed validation", details: validation.errors });
+      kit.data = validation.kit;
+    } else {
+      return res.status(400).json({ error: "section must be 'questions', 'flashcards', 'brief', or 'schedule'" });
     }
 
-    const updatedData = { ...kit.data, [section]: [...preserved, ...freshItems] };
-    const validation = validateKit(updatedData);
-    if (!validation.valid) {
-      return res.status(400).json({ error: "Regenerated kit failed validation", details: validation.errors });
-    }
-
-    kit.data = validation.kit;
     await kit.save();
     res.json(kit);
   } catch (err) {
@@ -186,4 +212,13 @@ kitsRouter.post("/bulk", async (req, res) => {
   }
 
   res.status(202).json({ created: created.map((c) => c.id) });
+});
+
+// Delete a kit
+kitsRouter.delete("/:id", async (req, res) => {
+  const kit = await KitDoc.findOneAndDelete({ _id: req.params.id, owner: req.session.userId });
+  if (!kit) {
+    return res.status(404).json({ error: "Kit not found" });
+  }
+  res.json({ success: true });
 });
