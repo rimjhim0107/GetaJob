@@ -60,7 +60,7 @@ export default function KitDetailPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [regenerating, setRegenerating] = useState<"questions" | "flashcards" | null>(null);
+  const [regenerating, setRegenerating] = useState<"questions" | "flashcards" | "brief" | "schedule" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [practiceMode, setPracticeMode] = useState(false);
@@ -68,6 +68,10 @@ export default function KitDetailPage() {
   const [revealed, setRevealed] = useState(false);
   const [practiceProgress, setPracticeProgress] = useState<Record<string, "low" | "medium" | "high">>({});
   const [practiceQueue, setPracticeQueue] = useState<Flashcard[]>([]);
+
+  const [briefSummary, setBriefSummary] = useState("");
+  const [briefWhatTheyDo, setBriefWhatTheyDo] = useState("");
+  const [editingBrief, setEditingBrief] = useState(false);
 
   async function load() {
     const data = await apiFetch(`/kits/${id}`);
@@ -77,6 +81,8 @@ export default function KitDetailPage() {
       setFlashcards(data.data.flashcards || []);
       setSavedQuestions(data.data.questions || []);
       setSavedFlashcards(data.data.flashcards || []);
+      setBriefSummary(data.data.company_brief?.summary || "");
+      setBriefWhatTheyDo(data.data.company_brief?.what_they_do || "");
     }
     setPracticeProgress(data.practiceProgress || {});
   }
@@ -139,27 +145,32 @@ export default function KitDetailPage() {
     }
   }
 
-  async function regenerateSection(section: "questions" | "flashcards") {
-    if (dirty) {
-      setSaveError("Save or revert your current changes before regenerating.");
-      return;
-    }
+    async function regenerateSection(section: "questions" | "flashcards", category?: string) {
+    if (dirty) { setSaveError("Save or revert first."); return; }
     setRegenerating(section);
     try {
       const updated = await apiFetch(`/kits/${id}/regenerate`, {
         method: "POST",
-        body: JSON.stringify({ section }),
+        body: JSON.stringify({ section, category }),
       });
       setKitDoc(updated);
       setQuestions(updated.data.questions || []);
       setFlashcards(updated.data.flashcards || []);
       setSavedQuestions(updated.data.questions || []);
       setSavedFlashcards(updated.data.flashcards || []);
-    } catch (err: any) {
-      setSaveError(err.message);
-    } finally {
-      setRegenerating(null);
-    }
+    } catch (err: any) { setSaveError(err.message); }
+    finally { setRegenerating(null); }
+  }
+
+  async function regenerateBriefOrSchedule(section: "brief" | "schedule") {
+    setRegenerating(section as any);
+    try {
+      const updated = await apiFetch(`/kits/${id}/regenerate`, { method: "POST", body: JSON.stringify({ section }) });
+      setKitDoc(updated);
+      setBriefSummary(updated.data.company_brief.summary);
+      setBriefWhatTheyDo(updated.data.company_brief.what_they_do);
+    } catch (err: any) { setSaveError(err.message); }
+    finally { setRegenerating(null); }
   }
 
   function revertChanges() {
@@ -405,6 +416,16 @@ export default function KitDetailPage() {
                     onChange={(e) => updateQuestion(q.id, { answer_outline: e.target.value })}
                     placeholder="Answer outline"
                   />
+                  <select
+                    className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-sm text-slate-200"
+                    value={q.category}
+                    onChange={(e) => updateQuestion(q.id, { category: e.target.value as any })}
+                  >
+                    <option value="technical">technical</option>
+                    <option value="behavioural">behavioural</option>
+                    <option value="system-design">system-design</option>
+                    <option value="company-fit">company-fit</option>
+                  </select>
                   <button className="text-xs text-blue-400 self-start" onClick={() => setEditingId(null)}>Done</button>
                 </div>
               ) : (
