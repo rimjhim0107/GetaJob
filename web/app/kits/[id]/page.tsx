@@ -196,14 +196,14 @@ export default function KitDetailPage() {
   function addQuestion() {
     const q: Question = {
       id: newId("q"),
-      prompt: "New question — click to edit",
+      prompt: "",
       answer_outline: "",
       category: "technical",
       difficulty: 1,
       requirement_ids: [],
       state: "user_added",
     };
-    setQuestions((prev) => [...prev, q]);
+    setQuestions((prev) => [q, ...prev]);
     setEditingId(q.id);
     setDirty(true);
   }
@@ -408,6 +408,7 @@ export default function KitDetailPage() {
                   <textarea
                     className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-sm text-slate-200"
                     value={q.prompt}
+                    placeholder="Enter your question..."
                     onChange={(e) => updateQuestion(q.id, { prompt: e.target.value })}
                   />
                   <textarea
