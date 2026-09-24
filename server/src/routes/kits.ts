@@ -80,14 +80,15 @@ kitsRouter.patch("/:id", async (req, res) => {
     return res.status(400).json({ error: "Kit is not ready to be edited" });
   }
 
-  const { questions, flashcards } = req.body;
-  if (!Array.isArray(questions) && !Array.isArray(flashcards)) {
-    return res.status(400).json({ error: "Provide questions and/or flashcards arrays to update" });
+    const { questions, flashcards, company_brief } = req.body;
+  if (!Array.isArray(questions) && !Array.isArray(flashcards) && !company_brief) {
+    return res.status(400).json({ error: "Provide questions, flashcards, and/or company_brief to update" });
   }
 
   const updatedData = { ...kit.data };
   if (Array.isArray(questions)) updatedData.questions = questions;
   if (Array.isArray(flashcards)) updatedData.flashcards = flashcards;
+  if (company_brief) updatedData.company_brief = company_brief;
 
   const validation = validateKit(updatedData);
   if (!validation.valid) {
