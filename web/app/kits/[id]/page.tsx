@@ -354,13 +354,70 @@ export default function KitDetailPage() {
       <h1 className="text-2xl font-semibold text-white capitalize">{kit.source.company}</h1>
       {kit.source.role && <p className="text-slate-400 mb-6">{kit.source.role}</p>}
 
-      {(kit.company_brief.summary || kit.company_brief.what_they_do) && (
-        <section className="mb-8 bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-slate-300 mb-2 uppercase tracking-wide">Company Brief</h2>
-          {kit.company_brief.summary && <p className="text-sm text-slate-300 mb-2">{kit.company_brief.summary}</p>}
-          {kit.company_brief.what_they_do && <p className="text-sm text-slate-400">{kit.company_brief.what_they_do}</p>}
-        </section>
-      )}
+            <section className="mb-8 bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Company Brief</h2>
+          <div className="flex gap-3">
+            <button
+              onClick={() => regenerateBriefOrSchedule("brief")}
+              disabled={regenerating !== null}
+              className="text-xs text-slate-400 hover:text-white transition disabled:opacity-50"
+            >
+              {regenerating === "brief" ? "Regenerating..." : "↻ Regenerate"}
+            </button>
+            {!editingBrief ? (
+              <button className="text-xs text-blue-400 hover:text-blue-300" onClick={() => setEditingBrief(true)}>
+                Edit
+              </button>
+            ) : (
+              <button
+                className="text-xs text-blue-400 hover:text-blue-300"
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await apiFetch(`/kits/${id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({
+                        company_brief: { ...kit.company_brief, summary: briefSummary, what_they_do: briefWhatTheyDo },
+                      }),
+                    });
+                    await load();
+                    setEditingBrief(false);
+                  } catch (err: any) {
+                    setSaveError(err.message);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                Save
+              </button>
+            )}
+          </div>
+        </div>
+
+        {editingBrief ? (
+          <div className="flex flex-col gap-2">
+            <textarea
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-sm text-slate-200"
+              value={briefSummary}
+              onChange={(e) => setBriefSummary(e.target.value)}
+              placeholder="Company summary"
+            />
+            <textarea
+              className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-sm text-slate-400"
+              value={briefWhatTheyDo}
+              onChange={(e) => setBriefWhatTheyDo(e.target.value)}
+              placeholder="What they do"
+            />
+          </div>
+        ) : (
+          <>
+            {kit.company_brief.summary && <p className="text-sm text-slate-300 mb-2">{kit.company_brief.summary}</p>}
+            {kit.company_brief.what_they_do && <p className="text-sm text-slate-400">{kit.company_brief.what_they_do}</p>}
+          </>
+        )}
+      </section>
 
       <button
         className="bg-blue-600 hover:bg-blue-500 transition text-white text-sm font-medium px-4 py-2 rounded-lg mb-8"
@@ -496,7 +553,16 @@ export default function KitDetailPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wide">Study Schedule</h2>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Study Schedule</h2>
+          <button
+            onClick={() => regenerateBriefOrSchedule("schedule")}
+            disabled={regenerating !== null}
+            className="text-xs text-slate-400 hover:text-white transition disabled:opacity-50"
+          >
+            {regenerating === "schedule" ? "Regenerating..." : "↻ Regenerate"}
+          </button>
+        </div>
         <div className="flex flex-col gap-2">
           {kit.schedule.days.map((d) => (
             <div key={d.day} className="bg-slate-900 border border-slate-800 rounded-lg p-3">
